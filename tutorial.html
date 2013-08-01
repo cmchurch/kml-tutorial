@@ -1,0 +1,137 @@
+<!DOCTYPE html> 
+<html>
+<head>
+<style> a {color:blue;} </style>
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false&amp;language=en"></script>		<!--include google maps API-->
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>								<!--include jquery library-->
+<script type="text/javascript" src="gmap3.min.js"></script>		<!--include gmap3 library-->
+<script type="text/javascript" src="tabkey.js"></script>		<!--enable tabs in textarea-->
+
+<script>
+		var xmlDoc;
+		//INITIALIZE THE MAP
+		function init_map() {
+			$('#my-map').gmap3({map:{
+				options:{
+				 center:[20,0],
+				 zoom:2
+				 }
+				 }}
+			);
+		}	
+		
+		// ADD POLYGON TO THE MAP, ASSIGNING DESCRIPTION TO DISPLAY IN THE INFODIV WITH THE MOUSEOVER EVENT
+		function add_poly_to_map(arrayCoords,name,description,color) {
+		  $("#my-map").gmap3({
+			  polygon:{
+				options:{
+				  strokeColor: color,
+				  strokeOpacity: 0.8,
+				  strokeWeight: 2,
+				  fillColor: color,
+				  fillOpacity: 0.2,
+				  paths: arrayCoords
+				},
+				events:{
+					mouseover: function() {
+					$('#nameDiv').html(name);
+					$('#infoDiv').html(description);
+					}
+			  }
+			}
+			});
+		}
+		
+		//ADD POINT TO MAP
+		function add_point_to_map(arrayCoords, name,description) {
+		$('#my-map').gmap3({
+					 marker:{
+						latLng:arrayCoords[0],
+						events:{
+							mouseover: function() {$('#nameDiv').html(name); $('#infoDiv').html(description);}
+							}
+					}
+				});
+		}
+		
+		//GET AND RETURN COORDINATES FOR A PARTICULAR POLYGON
+		function getCoords(polygon) {
+					var arrayCoords=[];
+					var stringArray=[];
+					var numArray = [];
+					var poly = $(polygon).find('coordinates').text().split(/\s/);
+					
+					for (var i = 0; i < poly.length; i++)
+						{
+							if (poly[i]!='')
+								{
+									stringArray = poly[i].split(',');
+									lat=parseFloat(stringArray[0]);
+									lon=parseFloat(stringArray[1]);
+									arrayCoords.push([lon,lat]);
+								}
+						}
+				return arrayCoords;
+		}
+		
+		//ADD A POLYGON TO THE MAP BASED ON THE STATE NAME (Case Sensitive)
+		function add_poly_and_points() {
+			var polygons = $('Placemark Polygon',xmlDoc);
+			var points = $('Placemark Point',xmlDoc);
+				$(polygons).each(function(){
+					var Coords = getCoords($(this));
+					var name = $($(this)).parents('Placemark').find('name').text();
+					var description = $($(this)).parents('Placemark').find('description').text();
+					add_poly_to_map(Coords,name,description,"red");}
+					);
+				$(points).each(function(){
+					var Coords = getCoords($(this));
+					var name = $($(this)).parents('Placemark').find('name').text();
+					var description = $($(this)).parents('Placemark').find('description').text();
+					add_point_to_map(Coords,name,description,"red");}
+					);
+		}
+		
+		
+		//INITIALIZE MAP ONCE THE DOM IS READY
+		$(document).ready(function() {load_kml("bermuda.kml");init_map();});
+	
+		//LOAD KML DOCUMENT 
+		function load_kml(filename) {
+			$.ajax({
+					type: "GET",
+					url: "kml/" + filename,
+					dataType: "xml",
+					success: function(xml) {
+						xmlDoc=xml;
+						var xmlString = (new XMLSerializer()).serializeToString(xmlDoc);
+						$('#kml-textarea').val(xmlString);
+						add_poly_and_points();
+						}
+				});
+		}	
+		
+		function load_kml_textarea(){
+				$('#my-map').gmap3({clear:{}});
+				xmlDoc=$.parseXML($('#kml-textarea').val());
+				add_poly_and_points();
+		}
+	
+</script>
+</head>
+<body>
+<span><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/80x15.png" /></a><a href="./"> KML Workshop - Christopher Church | Scott McGinnis - UC Berkeley D-Lab - 15 March 2013</a></span><br/>
+<!--map div--> <div id="my-map" style="height:500px;width:80%;float:left;"></div>
+
+<!--wrapperdiv--><div class="wrapper" style="height:500px;width:20%;float:right">
+<!--nameDiv-->		<div id="nameDiv" style="font-size:30px;">[NAME]</div>
+<!--infoDiv-->		<div id="infoDiv" style="height:500px;width:100%;">Information about each point or polygon will appear here.</div>
+					</div>
+<!--clear button--><button onclick=" $('#my-map').gmap3({clear:{}});$('#infoDiv').html('');">Clear Map</button>
+<!--load KML textarea--><button onclick="load_kml_textarea();">Reload Map</button>
+<br/>
+<!--KML textarea--><textarea style="width:100%" rows="50" id="kml-textarea" onkeydown="return catchTab(this,event)" ></textarea>
+<!--view source link--><a onClick='window.open("view-source:" + window.location.href)'>- View Page Source -</a>
+
+</body>
+</html>
